@@ -11,16 +11,9 @@
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="false">
 
-        <!-- VpnService dari library WireGuard. Wajib dideklarasikan agar
-             sistem bisa mengikat service VPN. -->
-        <service
-            android:name="com.wireguard.android.backend.GoBackend$VpnService"
-            android:exported="true"
-            android:permission="android.permission.BIND_VPN_SERVICE">
-            <intent-filter>
-                <action android:name="android.net.VpnService" />
-            </intent-filter>
-        </service>
+        <!-- VpnService GoBackend sudah dideklarasikan oleh manifest library
+             com.wireguard.android:tunnel (exported="false"), jadi tidak boleh
+             dideklarasikan ulang di sini — manifest merger akan konflik. -->
 
         <!-- Foreground service agar proses tidak dibunuh OEM saat tunnel aktif.
              Android 14+ tidak punya tipe FGS "vpn", jadi pakai specialUse. -->
