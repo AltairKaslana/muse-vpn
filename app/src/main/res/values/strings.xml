@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Muse VPN</string>
+    <string name="need_conf">Impor file WireGuard (.conf) dulu.</string>
+    <string name="conf_saved">Konfigurasi tersimpan (terenkripsi).</string>
+    <string name="connecting">Menyambung VPN…</string>
+    <string name="vpn_up">VPN aktif — hanya aplikasi ini yang lewat tunnel.</string>
+    <string name="vpn_down">VPN tidak aktif. Browser dikunci.</string>
+    <string name="consent_denied">Izin VPN ditolak.</string>
+    <string name="blocked_link">Tautan ke luar situs diblokir.</string>
+    <string name="back_hint">Tekan "Keluar" untuk memutus VPN.</string>
+    <string name="fgs_title">VPN aktif</string>
+    <string name="fgs_text">Trafik hanya dari aplikasi ini</string>
+    <string name="btn_import">Impor .conf</string>
+    <string name="btn_connect">Sambung</string>
+    <string name="btn_exit">Keluar</string>
+</resources>

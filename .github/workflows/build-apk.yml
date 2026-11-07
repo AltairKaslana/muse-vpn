@@ -1,0 +1,82 @@
+name: build-apk
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install SDK packages
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin | tail -1)
+          yes | "$SDKM/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$SDKM/sdkmanager" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build release APK (unsigned)
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Sign APK
+        env:
+          KS: ${{ runner.temp }}/musevpn.jks
+        run: |
+          set -e
+          printf '%s' "${{ secrets.MUSE_KEYSTORE_BASE64 }}" | base64 -d > "$KS"
+          IN=app/build/outputs/apk/release/app-release-unsigned.apk
+          OUT=app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -p -f 4 "$IN" "$OUT"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+            --ks "$KS" \
+            --ks-key-alias "${{ secrets.MUSE_KEY_ALIAS }}" \
+            --ks-pass "pass:${{ secrets.MUSE_KEYSTORE_PASSWORD }}" \
+            --key-pass "pass:${{ secrets.MUSE_KEY_PASSWORD }}" \
+            "$OUT"
+          rm -f "$KS"
+
+      - name: Verify signature + APK info
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | head -6
+          echo "CERT_SHA256=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | grep -o 'SHA-256 digest:.*' | head -1)" >> "$GITHUB_STEP_SUMMARY"
+          ls -lh app/build/outputs/apk/release/
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$APK" | head -6
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: musevpn-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+
+      - name: Name file for release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: cp app/build/outputs/apk/release/app-release.apk "musevpn-${GITHUB_REF_NAME}.apk"
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Muse VPN ${{ github.ref_name }}
+          files: musevpn-*.apk
