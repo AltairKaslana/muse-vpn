@@ -28,6 +28,14 @@ android {
         }
     }
 
+    // HP saja: x86/x86_64 hanya untuk emulator. Membuangnya menghemat ~6 MB
+    // karena libwg-go.so (backend Go WireGuard) yang besar ada per-arsitektur.
+    packaging {
+        jniLibs {
+            excludes += listOf("lib/x86/**", "lib/x86_64/**")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
